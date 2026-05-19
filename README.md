@@ -4,6 +4,8 @@ A React Native MMKV driver for unstorage.
 
 ## Installation
 
+> Both `unstorage` and `react-native-mmkv` are required to be installed.
+
 Install this package as a dependency in the project:
 
 ```sh

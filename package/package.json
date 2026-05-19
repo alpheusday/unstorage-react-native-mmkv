@@ -40,16 +40,20 @@
         "dist"
     ],
     "dependencies": {
-        "react-native-mmkv": "^4.3.1",
         "ts-vista": "~0.2.3"
     },
     "devDependencies": {
+        "react-native-mmkv": "catalog:dev",
         "unstorage": "catalog:dev"
     },
     "peerDependencies": {
+        "react-native-mmkv": "catalog:peer",
         "unstorage": "catalog:peer"
     },
     "peerDependenciesMeta": {
+        "react-native-mmkv": {
+            "optional": true
+        },
         "unstorage": {
             "optional": true
         }

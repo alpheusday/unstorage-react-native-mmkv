@@ -7,8 +7,10 @@ strictPeerDependencies: false
 
 catalogs:
     dev:
-        unstorage: ^1.17.0
+        react-native-mmkv: 4.3.0
+        unstorage: 1.17.0
     peer:
+        react-native-mmkv: ^4.3.0
         unstorage: ^1.17.0
 
 minimumReleaseAge: 1440
