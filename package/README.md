@@ -1,6 +1,6 @@
-# unstorage MMKV
+# unstorage React Native MMKV
 
-A MMKV driver for unstorage.
+A React Native MMKV driver for unstorage.
 
 ## License
 

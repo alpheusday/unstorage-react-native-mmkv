@@ -63,7 +63,7 @@ importers:
       unstorage:
         specifier: catalog:dev
         version: 1.17.5
-      unstorage-mmkv:
+      unstorage-react-native-mmkv:
         specifier: workspace:*
         version: link:../package
       vitest:

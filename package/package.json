@@ -1,7 +1,7 @@
 {
-    "name": "unstorage-mmkv",
+    "name": "unstorage-react-native-mmkv",
     "version": "0.1.0",
-    "description": "A MMKV driver for unstorage",
+    "description": "A React Native MMKV driver for unstorage",
     "keywords": [
         "react-native-mmkv",
         "react-native",
@@ -13,11 +13,11 @@
         "js",
         "javascript"
     ],
-    "homepage": "https://github.com/alpheusday/unstorage-mmkv",
-    "bugs": "https://github.com/alpheusday/unstorage-mmkv/issues",
+    "homepage": "https://github.com/alpheusday/unstorage-react-native-mmkv",
+    "bugs": "https://github.com/alpheusday/unstorage-react-native-mmkv/issues",
     "repository": {
         "type": "git",
-        "url": "https://github.com/alpheusday/unstorage-mmkv.git",
+        "url": "https://github.com/alpheusday/unstorage-react-native-mmkv.git",
         "directory": "package"
     },
     "license": "MIT",

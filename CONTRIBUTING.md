@@ -1,10 +1,10 @@
 [< Back](./README.md)
 
-# Contributing to unstorage MMKV
+# Contributing to unstorage React Native MMKV
 
 Thanks for your interest in contributing!
 
-This is a guideline for contributing to unstorage MMKV.
+This is a guideline for contributing to unstorage React Native MMKV.
 
 ## Before the Contribution
 

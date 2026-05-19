@@ -1,4 +1,4 @@
-import driver from "unstorage-mmkv";
+import { mmkvDriver } from "unstorage-react-native-mmkv";
 import { afterEach, describe, vi } from "vitest";
 
 import { testDriver } from "./utils";
@@ -57,13 +57,13 @@ describe("drivers: react-native-mmkv", (): void => {
     });
 
     testDriver({
-        driver: driver({
+        driver: mmkvDriver({
             id: "test",
         }),
     });
 
     testDriver({
-        driver: driver({
+        driver: mmkvDriver({
             id: "test-with-base",
             base: "app",
         }),

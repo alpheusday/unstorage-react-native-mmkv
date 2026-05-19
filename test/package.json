@@ -8,7 +8,7 @@
     "dependencies": {
         "react-native-mmkv": "^4.3.1",
         "unstorage": "catalog:dev",
-        "unstorage-mmkv": "workspace:*",
+        "unstorage-react-native-mmkv": "workspace:*",
         "vitest": "^4.1.6"
     }
 }

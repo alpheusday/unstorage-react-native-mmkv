@@ -1,6 +1,6 @@
-# unstorage MMKV
+# unstorage React Native MMKV
 
-A MMKV driver for unstorage.
+A React Native MMKV driver for unstorage.
 
 ## Installation
 
@@ -8,19 +8,19 @@ Install this package as a dependency in the project:
 
 ```sh
 # npm
-npm i unstorage-mmkv
+npm i unstorage-react-native-mmkv
 
 # Yarn
-yarn add unstorage-mmkv
+yarn add unstorage-react-native-mmkv
 
 # pnpm
-pnpm add unstorage-mmkv
+pnpm add unstorage-react-native-mmkv
 
 # Deno
-deno add npm:unstorage-mmkv
+deno add npm:unstorage-react-native-mmkv
 
 # Bun
-bun add unstorage-mmkv
+bun add unstorage-react-native-mmkv
 ```
 
 ## Contributing
