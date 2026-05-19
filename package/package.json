@@ -1,0 +1,57 @@
+{
+    "name": "unstorage-mmkv",
+    "version": "0.1.0",
+    "description": "A MMKV driver for unstorage",
+    "keywords": [
+        "react-native-mmkv",
+        "react-native",
+        "mmkv",
+        "driver",
+        "unstorage",
+        "ts",
+        "typescript",
+        "js",
+        "javascript"
+    ],
+    "homepage": "https://github.com/alpheusday/unstorage-mmkv",
+    "bugs": "https://github.com/alpheusday/unstorage-mmkv/issues",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/alpheusday/unstorage-mmkv.git",
+        "directory": "package"
+    },
+    "license": "MIT",
+    "author": {
+        "name": "Alpheus",
+        "email": "contact@alphe.us"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
+        },
+        "./package.json": "./package.json"
+    },
+    "main": "./dist/index.js",
+    "module": "./dist/index.mjs",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "dependencies": {
+        "react-native-mmkv": "^4.3.1",
+        "ts-vista": "~0.2.3"
+    },
+    "devDependencies": {
+        "unstorage": "catalog:dev"
+    },
+    "peerDependencies": {
+        "unstorage": "catalog:peer"
+    },
+    "peerDependenciesMeta": {
+        "unstorage": {
+            "optional": true
+        }
+    }
+}
