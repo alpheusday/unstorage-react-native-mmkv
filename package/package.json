@@ -1,6 +1,6 @@
 {
     "name": "unstorage-react-native-mmkv",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "A React Native MMKV driver for unstorage",
     "keywords": [
         "react-native-mmkv",
