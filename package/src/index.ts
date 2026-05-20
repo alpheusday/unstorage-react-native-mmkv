@@ -148,5 +148,5 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
 };
 
 export default mmkvDriver;
-export type { DriverOptions, GetItem, Item, SetItem };
+export type { DriverOptions };
 export { mmkvDriver };
