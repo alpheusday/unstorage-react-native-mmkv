@@ -1,5 +1,4 @@
 import type { Configuration, MMKV } from "react-native-mmkv";
-import type { Listener } from "react-native-mmkv/lib/specs/MMKV.nitro";
 import type { Format, Partial } from "ts-vista";
 import type {
     Driver,
@@ -12,6 +11,8 @@ import type {
 import { createMMKV } from "react-native-mmkv";
 import { defineDriver } from "unstorage";
 import { joinKeys, normalizeKey } from "unstorage/drivers/utils/index";
+
+type Listener = ReturnType<MMKV["addOnValueChangedListener"]>;
 
 const filterKeysByPrefix = (keys: string[], prefix: string): string[] => {
     return keys.filter((key: string): boolean => {
@@ -45,20 +46,20 @@ type Item = {
 };
 
 const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
-    const { base: baseKey, ...remaining } = options ?? {};
-
-    const base: string = normalizeKey(baseKey || "");
-
-    const resolveKey = (key: string): string => joinKeys(base, key);
-
-    const mmkv: MMKV = createMMKV({
-        compareBeforeSet: true,
-        ...remaining,
-        id: remaining?.id ?? "mmkv.default",
-    });
-
     const driver = defineDriver<DriverOptions, MMKV>(
         (opts: DriverOptions): Driver<DriverOptions, MMKV> => {
+            const { base: baseKey, ...remaining } = opts ?? {};
+
+            const mmkv: MMKV = createMMKV({
+                compareBeforeSet: true,
+                ...remaining,
+                id: remaining?.id ?? "mmkv.default",
+            });
+
+            const base: string = normalizeKey(baseKey || "");
+
+            const resolveKey = (key: string): string => joinKeys(base, key);
+
             return {
                 name: "react-native-mmkv",
                 options: opts,
@@ -80,8 +81,14 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                         const result: Item[] = [];
 
                         for (const key of filtered) {
+                            const scopedKey: string = base
+                                ? key.slice(base.length + 1)
+                                : key;
+
+                            if (!scopedKey) continue;
+
                             result.push({
-                                key: base ? key.slice(base.length + 1) : key,
+                                key: scopedKey,
                                 value: mmkv.getString(key) ?? null,
                             });
                         }
@@ -160,18 +167,14 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                 watch(callback: WatchCallback): Unwatch {
                     const listener: Listener = mmkv.addOnValueChangedListener(
                         (key: string): void => {
-                            if (
-                                base &&
-                                key !== base &&
-                                !key.startsWith(`${base}:`)
-                            )
+                            if (base && !key.startsWith(`${base}:`))
                                 return void 0;
 
                             const scopedKey: string = base
-                                ? key === base
-                                    ? ""
-                                    : key.slice(base.length + 1)
+                                ? key.slice(base.length + 1)
                                 : key;
+
+                            if (!scopedKey) return void 0;
 
                             const event: WatchEvent = mmkv.contains(key)
                                 ? "update"
