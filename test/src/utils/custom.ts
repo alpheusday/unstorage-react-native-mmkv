@@ -1,6 +1,6 @@
 import type { Driver, Storage } from "unstorage";
 
-import { createStorage } from "unstorage";
+import { createStorage, prefixStorage } from "unstorage";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 export interface CustomTestContext {
@@ -115,28 +115,16 @@ export function testDriverCustom(opts: CustomTestOptions): void {
         });
     });
 
-    describe("watch with base", () => {
-        it("only fires for keys under the base prefix", async () => {
-            const driverInstance: Driver =
-                typeof opts.driver === "function" ? opts.driver() : opts.driver;
-            const driverOptions: Record<string, unknown> =
-                driverInstance.options ?? {};
-            const base: string | undefined = (
-                driverOptions as Record<string, unknown>
-            ).base as string | undefined;
-
-            if (!base) return;
-
-            const storageWithBase: Storage = createStorage({
-                driver: driverInstance,
-            });
+    describe("watch with prefixStorage", () => {
+        it("fires events with prefixed keys", async () => {
+            const prefixed: Storage = prefixStorage(ctx.storage, "app");
 
             const events: Array<{
                 event: string;
                 key: string;
             }> = [];
 
-            const unwatch = await storageWithBase.watch(
+            const unwatch = await prefixed.watch(
                 (event: string, key: string): void => {
                     events.push({
                         event,
@@ -145,41 +133,11 @@ export function testDriverCustom(opts: CustomTestOptions): void {
                 },
             );
 
-            await storageWithBase.setItem("inside", "value");
-            // The driver's watch should only fire for keys under the base prefix.
-            // Since the storage scopes keys under base, "inside" maps to "base:inside".
+            await prefixed.setItem("inside", "value");
+
+            // prefixStorage does not transform watch event keys,
+            // so the key includes the prefix from the driver level.
             expect(events.length).toBeGreaterThanOrEqual(1);
-
-            await unwatch();
-        });
-
-        it("returns scoped key with base stripped", async () => {
-            const driverInstance: Driver =
-                typeof opts.driver === "function" ? opts.driver() : opts.driver;
-            const driverOptions: Record<string, unknown> =
-                driverInstance.options ?? {};
-            const base: string | undefined = (
-                driverOptions as Record<string, unknown>
-            ).base as string | undefined;
-
-            if (!base) return;
-
-            const storageWithBase: Storage = createStorage({
-                driver: driverInstance,
-            });
-
-            const keys: string[] = [];
-
-            const unwatch = await storageWithBase.watch(
-                (_event: string, key: string): void => {
-                    keys.push(key);
-                },
-            );
-
-            await storageWithBase.setItem("scoped", "value");
-
-            // The key in the callback should have the base prefix stripped
-            expect(keys).toContain("scoped");
 
             await unwatch();
         });
@@ -277,6 +235,53 @@ export function testDriverCustom(opts: CustomTestOptions): void {
         });
     });
 
+    describe("maxDepth", () => {
+        it("filters keys by depth via driver getKeys", async () => {
+            await ctx.storage.setItem("depth0_0", "data");
+            await ctx.storage.setItem("depth0:depth1_0", "data");
+            await ctx.storage.setItem("depth0:depth1:depth2_0", "data");
+
+            const depth0: string[] =
+                ctx.driver.getKeys?.("", {
+                    maxDepth: 0,
+                }) ?? [];
+            const depth1: string[] =
+                ctx.driver.getKeys?.("", {
+                    maxDepth: 1,
+                }) ?? [];
+
+            expect(depth0).toMatchObject([
+                "depth0_0",
+            ]);
+            expect(depth1.sort()).toMatchObject(
+                [
+                    "depth0_0",
+                    "depth0:depth1_0",
+                ].sort(),
+            );
+        });
+    });
+
+    describe("flags", () => {
+        it("declares maxDepth flag", () => {
+            expect(ctx.driver.flags).toMatchObject({
+                maxDepth: true,
+            });
+        });
+    });
+
+    describe("dispose", () => {
+        it("clears all keys", async () => {
+            await ctx.storage.setItem("dispose:a", "val_a");
+            await ctx.storage.setItem("dispose:b", "val_b");
+
+            ctx.driver.dispose?.();
+
+            const keys: string[] = ctx.driver.getKeys?.() ?? [];
+            expect(keys).toMatchObject([]);
+        });
+    });
+
     describe("getInstance", () => {
         it("returns the MMKV instance", () => {
             const instance: unknown = ctx.driver.getInstance?.();
@@ -290,6 +295,28 @@ export function testDriverCustom(opts: CustomTestOptions): void {
             const second: unknown = ctx.driver.getInstance?.();
 
             expect(first).toBe(second);
+        });
+    });
+
+    describe("prefixStorage", () => {
+        it("scopes keys with a prefix", async () => {
+            const prefixed: Storage = prefixStorage(ctx.storage, "app");
+
+            await prefixed.setItem("key", "value");
+
+            expect(await prefixed.getItem("key")).toBe("value");
+            expect(await ctx.storage.getItem("app:key")).toBe("value");
+        });
+
+        it("isolates keys between prefixed storages", async () => {
+            const appStorage: Storage = prefixStorage(ctx.storage, "app");
+            const dataStorage: Storage = prefixStorage(ctx.storage, "data");
+
+            await appStorage.setItem("x", "app-value");
+            await dataStorage.setItem("x", "data-value");
+
+            expect(await appStorage.getItem("x")).toBe("app-value");
+            expect(await dataStorage.getItem("x")).toBe("data-value");
         });
     });
 }

@@ -38,11 +38,7 @@ const storage = createStorage({
 
 ### Options
 
-`mmkvDriver` accepts React Native MMKV [Configuration](https://github.com/mrousavy/react-native-mmkv/blob/main/packages/react-native-mmkv/src/specs/MMKV.nitro.ts) options and driver-specific options:
-
-| Option | Type     | Default | Description                                                                |
-| ------ | -------- | ------- | -------------------------------------------------------------------------- |
-| `base` | `string` | `""`    | Prefix for all keys. Useful for namespacing within a shared MMKV instance. |
+`mmkvDriver` accepts React Native MMKV [Configuration](https://github.com/mrousavy/react-native-mmkv/blob/main/packages/react-native-mmkv/src/specs/MMKV.nitro.ts) as options.
 
 ### Storage APIs
 

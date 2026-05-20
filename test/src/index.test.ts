@@ -95,13 +95,6 @@ describe("drivers: react-native-mmkv", (): void => {
             id: "test",
         }),
     });
-
-    testDriver({
-        driver: mmkvDriver({
-            id: "test-with-base",
-            base: "app",
-        }),
-    });
 });
 
 describe("drivers: react-native-mmkv (custom)", (): void => {
@@ -112,13 +105,6 @@ describe("drivers: react-native-mmkv (custom)", (): void => {
     testDriverCustom({
         driver: mmkvDriver({
             id: "custom-test",
-        }),
-    });
-
-    testDriverCustom({
-        driver: mmkvDriver({
-            id: "custom-test-base",
-            base: "app",
         }),
     });
 });

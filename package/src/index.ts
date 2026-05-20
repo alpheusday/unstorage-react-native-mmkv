@@ -2,6 +2,7 @@ import type { Configuration, MMKV } from "react-native-mmkv";
 import type { Format, Partial } from "ts-vista";
 import type {
     Driver,
+    GetKeysOptions,
     StorageValue,
     Unwatch,
     WatchCallback,
@@ -9,31 +10,16 @@ import type {
 } from "unstorage";
 
 import { createMMKV } from "react-native-mmkv";
-import { defineDriver } from "unstorage";
-import { joinKeys, normalizeKey } from "unstorage/drivers/utils/index";
+import {
+    defineDriver,
+    filterKeyByBase,
+    filterKeyByDepth,
+    normalizeBaseKey,
+} from "unstorage";
 
 type Listener = ReturnType<MMKV["addOnValueChangedListener"]>;
 
-const filterKeysByPrefix = (keys: string[], prefix: string): string[] => {
-    return keys.filter((key: string): boolean => {
-        return key === prefix || key.startsWith(`${prefix}:`);
-    });
-};
-
-type ExtraDriverOptions = {
-    /**
-     * Prefix for all keys.
-     *
-     * Useful for namespacing within a shared MMKV instance.
-     *
-     * By default, it is `""`.
-     */
-    base: string;
-};
-
-type DriverOptions = Format<
-    Partial<Configuration> & Partial<ExtraDriverOptions>
->;
+type DriverOptions = Format<Partial<Configuration>>;
 
 type GetItem = {
     key: string;
@@ -52,139 +38,103 @@ type Item = {
 const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
     const driver = defineDriver<DriverOptions, MMKV>(
         (opts: DriverOptions): Driver<DriverOptions, MMKV> => {
-            const { base: baseKey, ...remaining } = opts ?? {};
-
             const mmkv: MMKV = createMMKV({
                 compareBeforeSet: true,
-                ...remaining,
-                id: remaining?.id ?? "mmkv.default",
+                ...opts,
+                id: opts?.id ?? "mmkv.default",
             });
-
-            const base: string = normalizeKey(baseKey || "");
-
-            const resolveKey = (key: string): string => joinKeys(base, key);
 
             return {
                 name: "react-native-mmkv",
+                flags: {
+                    maxDepth: true,
+                },
                 options: opts,
                 getInstance: (): MMKV => mmkv,
                 hasItem(key: string): boolean {
-                    return mmkv.contains(resolveKey(key));
+                    return mmkv.contains(key);
                 },
                 getItem(key: string): StorageValue {
-                    return mmkv.getString(resolveKey(key)) ?? null;
+                    return mmkv.getString(key) ?? null;
                 },
                 getItems(items?: GetItem[]): Item[] {
                     if (!items) {
-                        const keys: string[] = mmkv.getAllKeys();
-
-                        const filtered: string[] = base
-                            ? filterKeysByPrefix(keys, base)
-                            : keys;
-
-                        const result: Item[] = [];
-
-                        for (const key of filtered) {
-                            const scopedKey: string = base
-                                ? key.slice(base.length + 1)
-                                : key;
-
-                            if (!scopedKey) continue;
-
-                            result.push({
-                                key: scopedKey,
+                        return mmkv.getAllKeys().map(
+                            (key: string): Item => ({
+                                key,
                                 value: mmkv.getString(key) ?? null,
-                            });
-                        }
-
-                        return result;
+                            }),
+                        );
                     }
 
-                    const result: Item[] = [];
-
-                    for (const item of items) {
-                        const key: string = resolveKey(item.key);
-
-                        result.push({
-                            key: base ? key.slice(base.length + 1) : key,
-                            value: mmkv.getString(key) ?? null,
-                        });
-                    }
-
-                    return result;
+                    return items.map(
+                        (item: GetItem): Item => ({
+                            key: item.key,
+                            value: mmkv.getString(item.key) ?? null,
+                        }),
+                    );
                 },
                 setItem(key: string, value: string): void {
-                    mmkv.set(resolveKey(key), value);
+                    mmkv.set(key, value);
                 },
                 setItems(items: SetItem[]): void {
                     for (const item of items) {
-                        mmkv.set(resolveKey(item.key), item.value);
+                        mmkv.set(item.key, item.value);
                     }
                 },
                 removeItem(key: string): void {
-                    mmkv.remove(resolveKey(key));
+                    mmkv.remove(key);
                 },
-                getKeys(basePrefix?: string): string[] {
-                    const prefix: string = resolveKey(basePrefix || "");
-
-                    if (!prefix) {
-                        const keys: string[] = mmkv.getAllKeys();
-
-                        const matched: string[] = base
-                            ? filterKeysByPrefix(keys, base)
-                            : keys;
-
-                        return matched
-                            .map((key: string): string => {
-                                return base ? key.slice(base.length + 1) : key;
-                            })
-                            .filter(Boolean);
-                    }
-
+                getKeys(base?: string, opts?: GetKeysOptions): string[] {
                     const keys: string[] = mmkv.getAllKeys();
 
-                    return filterKeysByPrefix(keys, prefix)
-                        .map((key: string): string => {
-                            return base ? key.slice(base.length + 1) : key;
-                        })
-                        .filter(Boolean);
-                },
-                clear(basePrefix?: string): void {
-                    const prefix: string = resolveKey(basePrefix || "");
+                    let filtered: string[] = keys;
 
-                    const keys: string[] = mmkv.getAllKeys();
+                    if (base) {
+                        const normalizedBase: string = normalizeBaseKey(base);
 
-                    let list: string[];
-
-                    if (prefix) {
-                        list = filterKeysByPrefix(keys, prefix);
-                    } else if (base) {
-                        list = filterKeysByPrefix(keys, base);
-                    } else {
-                        list = keys;
+                        filtered = filtered.filter((key: string): boolean =>
+                            filterKeyByBase(key, normalizedBase),
+                        );
                     }
 
-                    for (const key of list) {
+                    if (opts?.maxDepth !== void 0) {
+                        filtered = filtered.filter((key: string): boolean =>
+                            filterKeyByDepth(key, opts.maxDepth),
+                        );
+                    }
+
+                    return filtered;
+                },
+                clear(base?: string): void {
+                    if (!base) {
+                        mmkv.clearAll();
+                        return void 0;
+                    }
+
+                    const normalizedBase: string = normalizeBaseKey(base);
+
+                    const keys: string[] = mmkv
+                        .getAllKeys()
+                        .filter((key: string): boolean =>
+                            filterKeyByBase(key, normalizedBase),
+                        );
+
+                    for (const key of keys) {
                         mmkv.remove(key);
                     }
+                },
+                dispose(): void {
+                    mmkv.clearAll();
                 },
                 watch(callback: WatchCallback): Unwatch {
                     const listener: Listener = mmkv.addOnValueChangedListener(
                         (key: string): void => {
-                            if (base && !key.startsWith(`${base}:`))
-                                return void 0;
-
-                            const scopedKey: string = base
-                                ? key.slice(base.length + 1)
-                                : key;
-
-                            if (!scopedKey) return void 0;
-
                             const event: WatchEvent = mmkv.contains(key)
                                 ? "update"
                                 : "remove";
 
-                            callback(event, scopedKey);
+                            callback(event, key);
                         },
                     );
 
