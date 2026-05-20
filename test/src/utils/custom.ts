@@ -176,7 +176,7 @@ export function testDriverCustom(opts: CustomTestOptions): void {
     });
 
     describe("clear with prefix", () => {
-        it("only clears keys matching the prefix", async () => {
+        it("clears keys matching the prefix", async () => {
             await ctx.storage.setItem("prefix:a", "val_a");
             await ctx.storage.setItem("prefix:b", "val_b");
             await ctx.storage.setItem("other:c", "val_c");
@@ -271,14 +271,55 @@ export function testDriverCustom(opts: CustomTestOptions): void {
     });
 
     describe("dispose", () => {
-        it("clears all keys", async () => {
+        it("does not clear stored data", async () => {
             await ctx.storage.setItem("dispose:a", "val_a");
             await ctx.storage.setItem("dispose:b", "val_b");
 
             ctx.driver.dispose?.();
 
             const keys: string[] = ctx.driver.getKeys?.() ?? [];
-            expect(keys).toMatchObject([]);
+            expect(keys.sort()).toMatchObject(
+                [
+                    "dispose:a",
+                    "dispose:b",
+                ].sort(),
+            );
+        });
+
+        it("removes active watch listeners", async () => {
+            const events: Array<{
+                event: string;
+                key: string;
+            }> = [];
+
+            ctx.driver.watch?.((event: string, key: string): void => {
+                events.push({
+                    event,
+                    key,
+                });
+            });
+
+            ctx.driver.dispose?.();
+
+            ctx.driver.setItem?.("dispose:after", "value");
+
+            expect(events.length).toBe(0);
+        });
+    });
+
+    describe("getMeta", () => {
+        it("returns null for existing key", async () => {
+            await ctx.storage.setItem("meta:a", "val_a");
+
+            const meta: unknown = ctx.driver.getMeta?.("meta:a") ?? null;
+
+            expect(meta).toBeNull();
+        });
+
+        it("returns null for non-existent key", () => {
+            const meta: unknown = ctx.driver.getMeta?.("nonexistent") ?? null;
+
+            expect(meta).toBeNull();
         });
     });
 

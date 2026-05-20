@@ -3,6 +3,7 @@ import type { Format, Partial } from "ts-vista";
 import type {
     Driver,
     GetKeysOptions,
+    StorageMeta,
     StorageValue,
     Unwatch,
     WatchCallback,
@@ -44,6 +45,8 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                 id: opts?.id ?? "mmkv.default",
             });
 
+            const activeListeners: Set<Listener> = new Set<Listener>();
+
             return {
                 name: "react-native-mmkv",
                 flags: {
@@ -74,6 +77,9 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                         }),
                     );
                 },
+                getItemRaw(key: string): ArrayBuffer | null {
+                    return mmkv.getBuffer(key) ?? null;
+                },
                 setItem(key: string, value: string): void {
                     mmkv.set(key, value);
                 },
@@ -82,8 +88,39 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                         mmkv.set(item.key, item.value);
                     }
                 },
+                setItemRaw(key: string, value: unknown): void {
+                    if (value instanceof ArrayBuffer) {
+                        mmkv.set(key, value);
+                        return void 0;
+                    }
+
+                    if (ArrayBuffer.isView(value)) {
+                        const view: ArrayBufferView = value as ArrayBufferView;
+
+                        const buffer: ArrayBuffer = new ArrayBuffer(
+                            view.byteLength,
+                        );
+
+                        new Uint8Array(buffer).set(
+                            new Uint8Array(
+                                view.buffer,
+                                view.byteOffset,
+                                view.byteLength,
+                            ),
+                        );
+
+                        mmkv.set(key, buffer);
+
+                        return void 0;
+                    }
+
+                    mmkv.set(key, String(value));
+                },
                 removeItem(key: string): void {
                     mmkv.remove(key);
+                },
+                getMeta(_key: string): StorageMeta | null {
+                    return null;
                 },
                 getKeys(base?: string, opts?: GetKeysOptions): string[] {
                     const keys: string[] = mmkv.getAllKeys();
@@ -125,7 +162,8 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                     }
                 },
                 dispose(): void {
-                    mmkv.clearAll();
+                    for (const listener of activeListeners) listener.remove();
+                    activeListeners.clear();
                 },
                 watch(callback: WatchCallback): Unwatch {
                     const listener: Listener = mmkv.addOnValueChangedListener(
@@ -138,7 +176,12 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                         },
                     );
 
-                    return (): void => listener.remove();
+                    activeListeners.add(listener);
+
+                    return (): void => {
+                        listener.remove();
+                        activeListeners.delete(listener);
+                    };
                 },
             };
         },

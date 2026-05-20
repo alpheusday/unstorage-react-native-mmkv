@@ -6,10 +6,12 @@ import { afterEach, describe, vi } from "vitest";
 import { testDriverCustom } from "#/utils/custom";
 import { testDriver } from "#/utils/unstorage";
 
+type StoredValue = string | ArrayBuffer;
+
 class MockMMKV {
     private id: string;
 
-    private data: Map<string, string> = new Map<string, string>();
+    private data: Map<string, StoredValue> = new Map<string, StoredValue>();
 
     private listeners: Set<(key: string) => void> = new Set<
         (key: string) => void
@@ -28,21 +30,47 @@ class MockMMKV {
     }
 
     getString(key: string): string | undefined {
-        return this.data.get(key) ?? undefined;
+        const value: StoredValue | undefined = this.data.get(key);
+
+        if (typeof value === "string") {
+            return value;
+        }
+
+        return void 0;
     }
 
-    set(key: string, value: string): void {
-        this.data.set(key, value);
+    getBuffer(key: string): ArrayBuffer | undefined {
+        const value: StoredValue | undefined = this.data.get(key);
+
+        if (value instanceof ArrayBuffer) {
+            return value;
+        }
+
+        return void 0;
+    }
+
+    set(key: string, value: boolean | string | number | ArrayBuffer): void {
+        if (typeof value === "string" || value instanceof ArrayBuffer) {
+            this.data.set(key, value);
+        } else {
+            this.data.set(key, String(value));
+        }
+
         for (const listener of this.listeners) {
             listener(key);
         }
     }
 
-    remove(key: string): void {
+    remove(key: string): boolean {
+        const existed: boolean = this.data.has(key);
+
         this.data.delete(key);
+
         for (const listener of this.listeners) {
             listener(key);
         }
+
+        return existed;
     }
 
     getAllKeys(): string[] {

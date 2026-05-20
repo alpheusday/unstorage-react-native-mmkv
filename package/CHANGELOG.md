@@ -1,5 +1,12 @@
 ## Next
 
+### What's New
+
+- add `getItemRaw` method
+- add `setItemRaw` method
+- add `getMeta` method
+- add `dispose` method
+
 ### What's Changed
 
 - simplify the codebase, use `prefixStorage` for prefixing
