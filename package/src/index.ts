@@ -22,7 +22,11 @@ const filterKeysByPrefix = (keys: string[], prefix: string): string[] => {
 
 type ExtraDriverOptions = {
     /**
-     * Prefix for keys.
+     * Prefix for all keys.
+     *
+     * Useful for namespacing within a shared MMKV instance.
+     *
+     * By default, it is `""`.
      */
     base: string;
 };
