@@ -1,11 +1,23 @@
 import type { Configuration, MMKV } from "react-native-mmkv";
 import type { Listener } from "react-native-mmkv/lib/specs/MMKV.nitro";
 import type { Format, Partial } from "ts-vista";
-import type { Driver, StorageValue, Unwatch, WatchCallback } from "unstorage";
+import type {
+    Driver,
+    StorageValue,
+    Unwatch,
+    WatchCallback,
+    WatchEvent,
+} from "unstorage";
 
 import { createMMKV } from "react-native-mmkv";
 import { defineDriver } from "unstorage";
 import { joinKeys, normalizeKey } from "unstorage/drivers/utils/index";
+
+const filterKeysByPrefix = (keys: string[], prefix: string): string[] => {
+    return keys.filter((key: string): boolean => {
+        return key === prefix || key.startsWith(`${prefix}:`);
+    });
+};
 
 type ExtraDriverOptions = {
     /**
@@ -61,9 +73,13 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                     if (!items) {
                         const keys: string[] = mmkv.getAllKeys();
 
+                        const filtered: string[] = base
+                            ? filterKeysByPrefix(keys, base)
+                            : keys;
+
                         const result: Item[] = [];
 
-                        for (const key of keys) {
+                        for (const key of filtered) {
                             result.push({
                                 key: base ? key.slice(base.length + 1) : key,
                                 value: mmkv.getString(key) ?? null,
@@ -100,34 +116,23 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                 getKeys(basePrefix?: string): string[] {
                     const prefix: string = resolveKey(basePrefix || "");
 
-                    const keys: string[] = mmkv.getAllKeys();
-
                     if (!prefix) {
-                        if (base) {
-                            return keys
-                                .filter((key: string): boolean => {
-                                    return (
-                                        key === base ||
-                                        key.startsWith(`${base}:`)
-                                    );
-                                })
-                                .map((key: string): string => {
-                                    return base
-                                        ? key.slice(base.length + 1)
-                                        : key;
-                                })
-                                .filter(Boolean);
-                        } else {
-                            return keys;
-                        }
+                        const keys: string[] = mmkv.getAllKeys();
+
+                        const matched: string[] = base
+                            ? filterKeysByPrefix(keys, base)
+                            : keys;
+
+                        return matched
+                            .map((key: string): string => {
+                                return base ? key.slice(base.length + 1) : key;
+                            })
+                            .filter(Boolean);
                     }
 
-                    return keys
-                        .filter((key: string): boolean => {
-                            return (
-                                key === prefix || key.startsWith(`${prefix}:`)
-                            );
-                        })
+                    const keys: string[] = mmkv.getAllKeys();
+
+                    return filterKeysByPrefix(keys, prefix)
                         .map((key: string): string => {
                             return base ? key.slice(base.length + 1) : key;
                         })
@@ -138,27 +143,14 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
 
                     const keys: string[] = mmkv.getAllKeys();
 
-                    const list: string[] = [];
+                    let list: string[];
 
                     if (prefix) {
-                        list.push(
-                            ...keys.filter((key: string): boolean => {
-                                return (
-                                    key === prefix ||
-                                    key.startsWith(`${prefix}:`)
-                                );
-                            }),
-                        );
+                        list = filterKeysByPrefix(keys, prefix);
                     } else if (base) {
-                        list.push(
-                            ...keys.filter((key: string): boolean => {
-                                return (
-                                    key === base || key.startsWith(`${base}:`)
-                                );
-                            }),
-                        );
+                        list = filterKeysByPrefix(keys, base);
                     } else {
-                        list.push(...keys);
+                        list = keys;
                     }
 
                     for (const key of list) {
@@ -181,7 +173,11 @@ const mmkvDriver = (options?: DriverOptions): Driver<DriverOptions, MMKV> => {
                                     : key.slice(base.length + 1)
                                 : key;
 
-                            callback("update", scopedKey);
+                            const event: WatchEvent = mmkv.contains(key)
+                                ? "update"
+                                : "remove";
+
+                            callback(event, scopedKey);
                         },
                     );
 
