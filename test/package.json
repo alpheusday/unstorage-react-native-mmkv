@@ -9,7 +9,7 @@
         "react-native-mmkv": "catalog:dev",
         "unstorage": "catalog:dev",
         "unstorage-react-native-mmkv": "workspace:*",
-        "vitest": "^4.1.7"
+        "vitest": "^4.1.8"
     },
     "devDependencies": {
         "vite-tsconfig-paths": "^6.1.1"
